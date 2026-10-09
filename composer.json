@@ -1,0 +1,72 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "isapp/statamic-mcp",
+    "description": "The MCP server of danielgnh/statamic-mcp, with a backup of each file before an AI write changes it, and history and restore tools for the AI.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "statamic",
+        "mcp",
+        "addon",
+        "backup",
+        "ai"
+    ],
+    "support": {
+        "issues": "https://github.com/isap-ou/statamic-mcp/issues",
+        "source": "https://github.com/isap-ou/statamic-mcp"
+    },
+    "authors": [
+        {
+            "name": "Andrii Trush",
+            "email": "andrii.trush@isapp.be"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "danielgnh/statamic-mcp": "^0.7.2",
+        "laravel/mcp": "^0.8 || ^0.9 || ^1.0",
+        "spatie/laravel-backup": "^10.3",
+        "spatie/laravel-data": "^4.23",
+        "statamic/cms": "^6.31"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.27",
+        "orchestra/testbench": "^10.0 || ^11.0",
+        "phpunit/phpunit": "^12.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Isapp\\StatamicMcp\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Isapp\\StatamicMcp\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Statamic MCP with history",
+            "description": "A backup of each file before an MCP write, with history and restore through MCP"
+        },
+        "laravel": {
+            "providers": [
+                "Isapp\\StatamicMcp\\ServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "lint": [
+            "@php vendor/bin/pint --ansi"
+        ],
+        "test": "vendor/bin/phpunit --colors=always"
+    },
+    "config": {
+        "allow-plugins": {
+            "pixelfear/composer-dist-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
