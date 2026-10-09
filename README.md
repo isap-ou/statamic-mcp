@@ -93,9 +93,11 @@ Through MCP:
 - `backups_restore`: a dry run by default. With `confirm: true` it saves that version.
   The site backs up the current version first, so a restore can be undone too. It asks
   for the same rights as the base addon's write tools: `publish` when the restore changes
-  the published state, and `create` to bring back a deleted entry. The file in the zip
-  must hold the item that the zip's name says. An entry in a collection with revisions
-  is refused; use its revision history in the Control Panel.
+  the published state, and `create` to bring back a deleted entry, with `edit other
+  authors` when that entry names another author. The file in the zip must hold the item
+  that the zip's name says. A deleted entry whose old file now belongs to another entry
+  is refused. A live entry in a collection with revisions is refused; use its revision
+  history in the Control Panel.
 
 By hand, without the addon:
 

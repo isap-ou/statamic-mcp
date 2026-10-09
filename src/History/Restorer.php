@@ -67,7 +67,7 @@ class Restorer
             ->makeItemFromFile($file->path, $file->contents);
 
         if ($live === null) {
-            return $entry;
+            return $this->ensureFreePath($backup, $entry);
         }
 
         if ($entry->locale() !== $live->locale()) {
@@ -75,6 +75,20 @@ class Restorer
         }
 
         return $entry->initialPath($live->path());
+    }
+
+    /**
+     * A deleted entry has no file, so a file at its old path belongs to
+     * another entry. Statamic would save the restored entry beside it and
+     * then remove it as the restored entry's old file.
+     */
+    private function ensureFreePath(HistoryBackup $backup, EntryContract $entry): EntryContract
+    {
+        if (is_file($entry->path())) {
+            throw new ToolException("backup '{$backup->id}' was not restored: another entry now uses its file, and the restore would remove that entry's file");
+        }
+
+        return $entry;
     }
 
     /**

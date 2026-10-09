@@ -211,11 +211,9 @@ class BackupsRestoreTest extends TestCase
 
     public function test_a_restore_that_removes_the_author_needs_the_other_authors_right(): void
     {
-        $page = $this->aboutPage();
-        Blueprint::makeFromFields([
-            'title' => ['type' => 'text', 'validate' => 'required'],
-            'author' => ['type' => 'users', 'max_items' => 1],
-        ])->setHandle('page')->setNamespace('collections.pages')->save();
+        $this->pagesWithAnAuthorField();
+        $page = $this->page('about', 'About');
+        $this->inAnMcpRequest();
         Entry::find($page->id())->set('author', ['limited'])->save();
 
         $response = Server::actingAs($this->editorAllowedTo(['view pages entries', 'edit pages entries']))->tool(BackupsRestore::class, [
@@ -257,6 +255,57 @@ class BackupsRestoreTest extends TestCase
         $this->assertNull(Entry::find($page->id()));
     }
 
+    public function test_rejects_restoring_a_deleted_entry_onto_the_file_of_another_entry(): void
+    {
+        $page = $this->aboutPage();
+        config(['statamic.mcp.deletes' => true]);
+        Server::actingAs($this->editor())->tool(EntriesDelete::class, ['id' => $page->id()])->assertOk();
+        $newer = $this->page('about', 'New about');
+
+        $response = Server::actingAs($this->editor())->tool(BackupsRestore::class, [
+            'backup' => $this->backupIdOf($this->historyZips()[0]),
+            'confirm' => true,
+        ]);
+
+        $response->assertHasErrors(['another entry now uses its file']);
+        $this->assertNull(Entry::find($page->id()));
+        $this->assertFileExists($newer->path());
+        $this->assertSame('New about', Entry::find($newer->id())->get('title'));
+    }
+
+    public function test_brings_back_a_deleted_entry_with_the_create_and_publish_rights_only(): void
+    {
+        $page = $this->aboutPage();
+        config(['statamic.mcp.deletes' => true]);
+        Server::actingAs($this->editor())->tool(EntriesDelete::class, ['id' => $page->id()])->assertOk();
+
+        $response = Server::actingAs($this->editorAllowedTo(['view pages entries', 'create pages entries', 'publish pages entries']))->tool(BackupsRestore::class, [
+            'backup' => $this->backupIdOf($this->historyZips()[0]),
+            'confirm' => true,
+        ]);
+
+        $response->assertOk();
+        $this->assertSame('About', Entry::find($page->id())->get('title'));
+    }
+
+    public function test_bringing_back_a_deleted_entry_of_another_author_needs_the_other_authors_right(): void
+    {
+        $this->pagesWithAnAuthorField();
+        $page = $this->page('about', 'About')->set('author', ['someone-else']);
+        $page->save();
+        $this->inAnMcpRequest();
+        config(['statamic.mcp.deletes' => true]);
+        Server::actingAs($this->editor())->tool(EntriesDelete::class, ['id' => $page->id()])->assertOk();
+
+        $response = Server::actingAs($this->editorAllowedTo(['view pages entries', 'create pages entries', 'publish pages entries']))->tool(BackupsRestore::class, [
+            'backup' => $this->backupIdOf($this->historyZips()[0]),
+            'confirm' => true,
+        ]);
+
+        $response->assertHasErrors(["'edit other authors pages entries'"]);
+        $this->assertNull(Entry::find($page->id()));
+    }
+
     public function test_rejects_an_entry_in_a_collection_with_revisions(): void
     {
         $page = $this->aboutPage();
@@ -291,6 +340,21 @@ class BackupsRestoreTest extends TestCase
         $this->inAnMcpRequest();
 
         return $page;
+    }
+
+    /**
+     * Statamic caches a collection's blueprint when it first reads it, so the
+     * author field must exist before the first page does.
+     */
+    private function pagesWithAnAuthorField(): void
+    {
+        $this->englishSite();
+        $this->pagesCollection();
+
+        Blueprint::makeFromFields([
+            'title' => ['type' => 'text', 'validate' => 'required'],
+            'author' => ['type' => 'users', 'max_items' => 1],
+        ])->setHandle('page')->setNamespace('collections.pages')->save();
     }
 
     private function updateTitle(EntryContract $page, string $title): void

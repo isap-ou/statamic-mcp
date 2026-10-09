@@ -122,7 +122,9 @@ class BackupsRestore extends Tool
 
     /**
      * A deleted entry comes back as a new one, so it asks for the rights of
-     * entries_create, and for publish when it comes back published.
+     * entries_create: create, and "edit other authors" when the entry names
+     * anyone but the user as its author. It also asks for publish when the
+     * entry comes back published.
      */
     private function ensureMayRestoreDeletedEntry(UserContract $user, EntryContract $restored): void
     {
@@ -130,7 +132,11 @@ class BackupsRestore extends Tool
 
         $this->ensureExposed('collections', $collection);
         $this->ensurePermission($user, "create {$collection} entries");
-        $this->ensureEntryPermission($user, 'edit', $restored);
+
+        if ($restored->blueprint()->hasField('author') && ! $this->sameAuthors($restored->authors()->all(), [$user->id()])) {
+            $this->ensurePermission($user, "edit other authors {$collection} entries");
+        }
+
         $this->ensureSiteAccess($user, $restored->locale());
 
         if ($restored->published()) {
